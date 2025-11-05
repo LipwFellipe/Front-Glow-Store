@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # 1️⃣ BANCO DE DADOS (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: lipw_db
+    restart: always
+    environment:
+      POSTGRES_USER: lipw
+      POSTGRES_PASSWORD: 135420
+      POSTGRES_DB: lipw
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lipw_network
+
+  # 2️⃣ API (Python Back-End)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lipw_api
+    restart: always
+    ports:
+      - "8000:5000"
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: lipw
+      POSTGRES_PASSWORD: 135420
+      POSTGRES_DB: lipw
+    depends_on:
+      - db
+    networks:
+      - lipw_network
+    volumes:
+      - ./app:/app
+
+  # 3️⃣ FRONT-END (Nginx)
+  front:
+    image: nginx:latest
+    container_name: lipw_front
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./Romualdi:/home/lipw/Desktop/Romualdi:ro      # código do front isolado
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    networks:
+      - lipw_network
+
+  # 4️⃣ CLOUDFLARE TUNNEL
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: lipw_tunnel
+    restart: always
+    environment:
+      TUNNEL_TOKEN: eyJhIjoiOGU0MzU5ZDViZGZlMjdmMzIwNDFiYTQ3ODhhZTcwZDYiLCJ0IjoiYmU4NWY5YzAtMjY3Zi00MzYwLWJlMjAtMzhiMGI5MDM5ZDdkIiwicyI6Ik5EQXpPVGxrWlRBdFlXVTJNUzAwTkdRMkxUbG1OV010TjJNM09EZzVNVGRqTkRJeCJ9
+    command: tunnel --url http://front:80 run
+    depends_on:
+      - front
+    networks:
+      - lipw_network
+
+volumes:
+  postgres_data:
+
+networks:
+  lipw_network:
+    driver: bridge

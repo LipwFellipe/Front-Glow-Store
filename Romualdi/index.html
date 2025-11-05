@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <title>Mensagens</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <main>
+      <h1>Mensagens</h1>
+      <form id="msgForm">
+        <input type="text" name="author" placeholder="Autor">
+        <textarea name="content" placeholder="Mensagem" required></textarea>
+        <button>Enviar</button>
+      </form>
+      <ul id="msgs"></ul>
+    </main>
+    <script>
+      async function carregar() {
+        // CHAMA O BACK-END NA PORTA 8000
+        const r = await fetch('https://api.lipwfellipe.site/api/messages');
+        const msgs = await r.json();
+        const ul = document.getElementById('msgs');
+        ul.innerHTML = msgs.map(m => `
+						<li>
+							<b>${m.author}</b> — ${m.content}
+						</li>`).join('');
+      }
+      document.getElementById('msgForm').onsubmit = async e => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        // CHAMA O BACK-END NA PORTA 8000
+        await fetch('https://api.lipwfellipe.site/api/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(Object.fromEntries(fd))
+        });
+        e.target.reset();
+        carregar();
+      };
+      carregar();
+    </script>
+  </body>
+</html>
